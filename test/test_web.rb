@@ -148,6 +148,20 @@ class TestWeb < MiniTest::Unit::TestCase
       assert_match /#{msg['args'][2]}/, last_response.body
     end
 
+    it 'can display redis stats' do
+      get '/stats/redis'
+      assert_equal 200, last_response.status
+      assert_match /redis_version/, last_response.body
+    end
+
+    it 'can display keys stats' do
+      get '/stats/keys'
+      assert_equal 200, last_response.status
+      assert_match /key/, last_response.body
+      assert_match /type/, last_response.body
+      assert_match /size/, last_response.body
+    end
+
     it 'can show user defined tab' do
       Sidekiq::Web.tabs << 'Custom Tab'
 

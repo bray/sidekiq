@@ -1,0 +1,6 @@
+- if start - 20 >= 0 || start + 20 <= size
+  p class="pagination"
+    - if start - 20 >= 0 
+      a href="#{current_page}?start=#{start - 20}" class="less" &laquo; less
+    - if start + 20 <= size
+      a href="#{current_page}?start=#{start + 20}" class="more" more &raquo;

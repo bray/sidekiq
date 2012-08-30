@@ -28,6 +28,12 @@ html
                 a #{Time.now.utc}
 
     .container
+      - if @subtabs
+        ul class="nav nav-pills"
+          - @subtabs.each do |subtab|
+            li class=class_if_current(current_section + '/' + subtab)
+              a href="#{current_section}/#{subtab}" #{subtab.capitalize}
+
       == yield
 
     script type="text/javascript" src="#{{root_path}}assets/application.js"

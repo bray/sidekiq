@@ -1,0 +1,27 @@
+- @subtabs = %w(redis keys)
+
+- if params[:key]
+  == slim Sidekiq.redis{ |conn| conn.type(params[:key]) }.eql?("string") ? :_key_string : :_key_sets
+
+- elsif params[:id] == 'redis'
+  h1 Redis
+  table class="table table-striped table-bordered"
+    - @stats.to_a.sort_by { |i| i[0].to_s }.each do |(key, value)|
+      tr
+        th= key
+        td= value
+
+- elsif params[:id] == 'keys'
+  h1 Keys owned by Sidekiq client
+  p class="sub" (All keys are actually prefixed with "#{Sidekiq.redis{ |conn| conn.namespace }}:")
+  table class="table table-striped table-bordered"
+    tr
+      th key
+      th type
+      th size
+    - @stats.sort.each do |key|
+      tr
+        th
+          a href="#{root_path}stats/keys/#{key}" #{key}
+        td= Sidekiq.redis{ |conn| conn.type(key) }
+        td= redis_get_size(key)

@@ -128,6 +128,51 @@ module Sidekiq
         parts[0].gsub!(/(\d)(?=(\d\d\d)+(?!\d))/, "\\1#{options[:delimiter]}")
         parts.join(options[:separator])
       end
+
+      def current_section
+        url_path request.path_info.sub('/','').split('/')[0].downcase
+      end
+
+      def current_page
+        url_path request.path_info.sub('/','')
+      end
+
+      def url_path(*path_parts)
+        [ path_prefix, path_parts ].join("/").squeeze('/')
+      end
+      alias_method :u, :url_path
+
+      def path_prefix
+        request.env['SCRIPT_NAME']
+      end
+
+      def class_if_current(path = '')
+        'active' if current_page[0, path.size] == path
+      end
+
+      def redis_get_size(key)
+        Sidekiq.redis do |conn|
+          case conn.type(key)
+          when 'none' then []
+          when 'list' then conn.llen(key)
+          when 'set' then conn.scard(key)
+          when 'string' then conn.get(key).length
+          when 'zset' then conn.zcard(key)
+          end
+        end
+      end
+
+      def redis_get_value_as_array(key, start=0)
+        Sidekiq.redis do |conn|
+          case conn.type(key)
+          when 'none' then []
+          when 'list' then conn.lrange(key, start, start + 20)
+          when 'set' then conn.smembers(key)[start..(start + 20)]
+          when 'string' then [conn.get(key)]
+          when 'zset' then conn.zrange(key, start, start + 20)
+          end
+        end
+      end
     end
 
     get "/" do
@@ -221,6 +266,23 @@ module Sidekiq
       redirect "#{root_path}retries"
     end
 
+    get '/stats' do
+      redirect "#{root_path}stats/redis"
+    end
+
+    get "/stats/:id" do
+      @stats = if params[:id] == 'redis'
+        Sidekiq.redis{ |conn| conn.info }
+      elsif params[:id] == 'keys'
+        Sidekiq.redis{ |conn| conn.keys }
+      end
+      slim :stats
+    end
+
+    get "/stats/keys/:key" do
+      slim :stats
+    end
+
     def process_score(set, score, operation)
       case operation
       when :retry
@@ -241,7 +303,7 @@ module Sidekiq
     end
 
     def self.tabs
-      @tabs ||= ["Queues", "Retries", "Scheduled"]
+      @tabs ||= ["Queues", "Retries", "Scheduled", "Stats"]
     end
 
   end
