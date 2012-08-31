@@ -1,7 +1,7 @@
 - @subtabs = %w(redis keys)
 
 - if params[:key]
-  == slim Sidekiq.redis{ |conn| conn.type(params[:key]) }.eql?("string") ? :_key_string : :_key_sets
+  == slim @data_type.eql?("string") ? :_key_string : :_key_sets
 
 - elsif params[:id] == 'redis'
   h1 Redis

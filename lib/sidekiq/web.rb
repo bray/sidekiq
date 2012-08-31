@@ -162,14 +162,14 @@ module Sidekiq
         end
       end
 
-      def redis_get_value_as_array(key, start=0)
+      def redis_get_value_as_array(key)
         Sidekiq.redis do |conn|
           case conn.type(key)
           when 'none' then []
-          when 'list' then conn.lrange(key, start, start + 20)
-          when 'set' then conn.smembers(key)[start..(start + 20)]
+          when 'list' then conn.lrange(key, 0, -1)
+          when 'set' then conn.smembers(key)
           when 'string' then [conn.get(key)]
-          when 'zset' then conn.zrange(key, start, start + 20)
+          when 'zset' then conn.zrange(key, 0, -1)
           end
         end
       end
@@ -280,6 +280,18 @@ module Sidekiq
     end
 
     get "/stats/keys/:key" do
+      @key = params[:key]
+      @data_type = Sidekiq.redis{ |conn| conn.type(@key) }
+      @size = redis_get_size(@key)
+
+      if %w(zset list).include?(@data_type)
+        @paginated = true
+        @count = (params[:count] || 25).to_i
+        (@current_page, @total_size, @items) = page(@key, params[:page], @count)
+      else
+        @items = redis_get_value_as_array(@key)
+      end
+
       slim :stats
     end
 

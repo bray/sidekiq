@@ -1,10 +1,14 @@
-- if key = params[:key]
-  p class="sub" Showing #{start = params[:start].to_i} to #{start + 20} of <b>#{size = redis_get_size(key)}</b>
-  h1 Key "#{key}" is a #{Sidekiq.redis{ |conn| conn.type(key) }}
+- if @key
+  - if @paginated
+    == slim :_paging, :locals => {:url => "#{root_path}stats/keys/#{@key}"}
+    p class="sub" Showing #{(@current_page - 1) * @count + 1} to #{@current_page * @count} of <b>#{@size}</b>
+
+  h1 Key "#{@key}" is a #{@data_type}
+  h2 size: #{@size}
   table class="table table-striped table-bordered"
-    - redis_get_value_as_array(key, start).each do |row|
+    - @items.each do |row|
       tr
         td
           = row
 
-== slim :_next_more, :locals => {:start => start, :size => size}
+  == slim :_paging, :locals => {:url => "#{root_path}stats/keys/#{@key}"} if @paginated
